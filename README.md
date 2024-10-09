@@ -7,12 +7,12 @@ provides system abstractions for paralell execution.
 
 ### SubWorld
 
-[SubWorld]( crate::SubWorld ) provides the ability to split the world into smaller parts
+[SubWorld](crate::SubWorld) provides the ability to split the world into smaller parts
 which can only access a subset of components. This allows
 
 ### Commandbuffer
 
-[CommandBuffer]( crate::CommandBuffer ) provides deferred world modification by
+[CommandBuffer](crate::CommandBuffer) provides deferred world modification by
 means of component insertion, removal, entity spawning and despawning, as well
 as arbitrary world modification by closures, which will be executed at a later
 time.
@@ -48,7 +48,7 @@ will be provided.
 use hecs_schedule::*;
 use hecs::*;
 
-let mut world = World::default();
+let mut frame = World::default();
 
 #[derive(Debug)]
 struct App {

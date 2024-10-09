@@ -2,51 +2,51 @@ use std::{thread::sleep, time::Duration};
 
 use anyhow::{bail, ensure};
 use atomic_refcell::AtomicRefCell;
-use hecs::{Query, World};
-use hecs_schedule::{traits::QueryExt, *};
+use moss_hecs::{Frame, Query};
+use moss_hecs_schedule::{traits::QueryExt, *};
 
 #[test]
 fn has() {
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
-    world.spawn((67_i32, 7.0_f32));
+    frame.spawn((67_i32, 7.0_f32));
 
-    let subworld = SubWorldRef::<(&i32, &mut f32, &String)>::new(&world);
-    let subworld = &subworld;
+    let subframe = SubWorldRef::<(&i32, &mut f32, &String)>::new(&frame);
+    let subframe = &subframe;
 
-    let subworld: SubWorldRef<(&i32, &mut f32)> = subworld.try_into().unwrap();
+    let subworld: SubWorldRef<(&i32, &mut f32)> = subframe.try_into().unwrap();
 
-    assert!(subworld.has::<&i32>());
-    assert!(!subworld.has::<&mut i32>());
-    assert!(subworld.has::<&f32>());
-    assert!(subworld.has::<&mut f32>());
+    assert!(subframe.has::<&i32>());
+    assert!(!subframe.has::<&mut i32>());
+    assert!(subframe.has::<&f32>());
+    assert!(subframe.has::<&mut f32>());
 
-    assert!(subworld.has_all::<(&i32, &f32)>());
-    assert!(!subworld.has_all::<(&mut i32, &f32)>());
-    assert!(subworld.has_all::<(&mut f32, &i32)>());
-    assert!(!subworld.has_all::<(&mut f32, &i32, &u32)>());
+    assert!(subframe.has_all::<(&i32, &f32)>());
+    assert!(!subframe.has_all::<(&mut i32, &f32)>());
+    assert!(subframe.has_all::<(&mut f32, &i32)>());
+    assert!(!subframe.has_all::<(&mut f32, &i32, &u32)>());
 }
 
 #[test]
 fn query() {
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
-    world.spawn((67_i32, 7.0_f32));
-    let entity = world.spawn((42_i32, 3.1415_f32));
+    frame.spawn((67_i32, 7.0_f32));
+    let entity = frame.spawn((42_i32, 3.1415_f32));
 
-    let subworld = SubWorldRef::<(&i32, &mut f32)>::new(&world);
+    let subframe = SubWorldRef::<(&i32, &mut f32)>::new(&frame);
 
-    let mut query = subworld.native_query();
+    let mut query = subframe.native_query();
     query.par_for_each(8, |(e, val)| eprintln!("Entity {:?}: {:?}", e, val));
 
-    assert!(subworld.try_query::<(&mut i32, &f32)>().is_err());
-    let val = subworld.try_get::<i32>(entity).unwrap();
+    assert!(subframe.try_query::<(&mut i32, &f32)>().is_err());
+    let val = subframe.try_get::<i32>(entity).unwrap();
     assert_eq!(*val, 42);
 }
 
 #[test]
 fn custom_query() {
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
     #[derive(Query, Debug)]
     struct Foo<'a> {
@@ -54,28 +54,28 @@ fn custom_query() {
         _b: &'a mut f32,
     }
 
-    world.spawn((67_i32, 7.0_f32));
-    let entity = world.spawn((42_i32, 3.1415_f32));
+    frame.spawn((67_i32, 7.0_f32));
+    let entity = frame.spawn((42_i32, 3.1415_f32));
 
-    let subworld = SubWorldRef::<(Foo, &&'static str)>::new(&world);
+    let subframe = SubWorldRef::<(Foo, &&'static str)>::new(&frame);
 
-    assert!(subworld.has_all::<(&i32, &f32)>());
-    assert!(!subworld.has_all::<(&mut i32, &f32)>());
-    assert!(subworld.has_all::<(&mut f32, &i32)>());
-    assert!(subworld.has_all::<(&&'static str, &i32)>());
-    assert!(!subworld.has_all::<(&mut &'static str, &i32)>());
-    assert!(!subworld.has_all::<(&mut f32, &i32, &u32)>());
+    assert!(subframe.has_all::<(&i32, &f32)>());
+    assert!(!subframe.has_all::<(&mut i32, &f32)>());
+    assert!(subframe.has_all::<(&mut f32, &i32)>());
+    assert!(subframe.has_all::<(&&'static str, &i32)>());
+    assert!(!subframe.has_all::<(&mut &'static str, &i32)>());
+    assert!(!subframe.has_all::<(&mut f32, &i32, &u32)>());
 
-    let mut query = subworld.query::<&i32>();
+    let mut query = subframe.query::<&i32>();
     let view = query.view();
-    let mut query = subworld.try_query_one::<&i32>(entity).unwrap();
+    let mut query = subframe.try_query_one::<&i32>(entity).unwrap();
     let val = query.get().unwrap();
     assert_eq!(*val, 42);
 
-    let mut query = subworld.query::<Foo>();
+    let mut query = subframe.query::<Foo>();
     query.par_for_each(2, |(e, val)| eprintln!("Entity {:?}: {:?}", e, val));
 
-    assert!(subworld.try_query::<(&mut i32, &f32)>().is_err());
+    assert!(subframe.try_query::<(&mut i32, &f32)>().is_err());
     let val = view.get(entity).unwrap();
     assert_eq!(*val, 42);
 }
@@ -83,20 +83,20 @@ fn custom_query() {
 #[test]
 #[should_panic]
 fn fail_query() {
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
-    let entity = world.spawn((42_i32, 3.1415_f32));
+    let entity = frame.spawn((42_i32, 3.1415_f32));
 
-    let subworld = SubWorldRef::<(&i32, &f32)>::new(&world);
+    let subframe = SubWorldRef::<(&i32, &f32)>::new(&frame);
 
-    let val = subworld.try_get::<u64>(entity).unwrap();
+    let val = subframe.try_get::<u64>(entity).unwrap();
     assert_eq!(*val, 42);
 }
 
 #[test]
 fn commandbuffer() {
-    let mut world = World::default();
-    let e = world.reserve_entity();
+    let mut frame = Frame::default();
+    let e = frame.reserve_entity();
 
     let mut cmds = CommandBuffer::default();
 
@@ -105,9 +105,9 @@ fn commandbuffer() {
 
     cmds.remove_one::<usize>(e);
 
-    cmds.execute(&mut world);
+    cmds.execute(&mut frame);
 
-    assert!(world
+    assert!(frame
         .query::<(&i32, &f32)>()
         .iter()
         .map(|(_, val)| val)
@@ -181,7 +181,7 @@ fn execute_par_rw() {
     let outer = "Foo";
     let outer2 = "Bar";
 
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
     fn system1(a: Read<A>, b: Read<B>, c: Read<C>) {
         assert_eq!(*a, A(5));
@@ -213,15 +213,15 @@ fn execute_par_rw() {
     eprintln!("Batches: {}", schedule.batch_info());
 
     schedule
-        .execute((&mut world, &mut a, &mut b, &mut c))
+        .execute((&mut frame, &mut a, &mut b, &mut c))
         .unwrap();
 }
 
 #[test]
 fn split() {
-    let world = World::default();
+    let frame = Frame::default();
 
-    let a = SubWorldRef::<(&i32, &f32)>::new(&world);
+    let a = SubWorldRef::<(&i32, &f32)>::new(&frame);
 
     let b: SubWorldRef<&f32> = a.split().unwrap();
     let _empty: SubWorldRef<()> = a.split().unwrap();
@@ -231,16 +231,16 @@ fn split() {
 
 #[test]
 fn atomic() {
-    let world = AtomicRefCell::new(World::default());
+    let frame = AtomicRefCell::new(Frame::default());
 
-    world.borrow_mut().spawn(("a",));
-    let e = world.borrow_mut().spawn(("b", 4.5_f32));
+    frame.borrow_mut().spawn(("a",));
+    let e = frame.borrow_mut().spawn(("b", 4.5_f32));
 
-    let a = SubWorld::<(&'static &str, &mut f32)>::new(world.borrow());
+    let a = SubWorld::<(&'static &str, &mut f32)>::new(frame.borrow());
     let b: SubWorld<&'static &str> = a.split().unwrap();
 
-    let ref_world: SubWorldRef<&f32> = (&a).into();
-    assert_eq!(*ref_world.get::<f32>(e).unwrap(), 4.5);
+    let ref_frame: SubWorldRef<&f32> = (&a).into();
+    assert_eq!(*ref_frame.get::<f32>(e).unwrap(), 4.5);
 
     let empty = a.to_empty();
 

@@ -146,7 +146,7 @@ impl_for_tuples!(tuple_impl);
 #[cfg(test)]
 mod tests {
     use crate::{system::System, Context, GenericWorld, IntoData, Read, SubWorld};
-    use hecs::World;
+    use moss_hecs::Frame;
 
     use anyhow::{ensure, Result};
 
@@ -166,13 +166,13 @@ mod tests {
             name: "hecs-schedule",
         };
 
-        let mut world = World::default();
+        let mut frame = Frame::default();
 
-        let a = world.spawn(("a", 3));
-        let b = world.spawn(("b", 42));
-        let c = world.spawn(("c", 8));
+        let a = frame.spawn(("a", 3));
+        let b = frame.spawn(("b", 42));
+        let c = frame.spawn(("c", 8));
 
-        let data = unsafe { (&mut world, &mut app, &mut val).into_data(&mut ()) };
+        let data = unsafe { (&mut frame, &mut app, &mut val).into_data(&mut ()) };
 
         let context = Context::new(&data);
 

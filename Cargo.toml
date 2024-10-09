@@ -1,11 +1,11 @@
 [package]
-name = "hecs-schedule"
+name = "moss_hecs_schedule"
 version = "0.7.0"
 edition = "2021"
 description = "Provides shedulable systems and parallel execution for hecs"
-readme ="README.md"
+readme = "README.md"
 license-file = "LICENSE"
-authors = [ "Tei Roberts" ]
+authors = ["Tei Roberts"]
 documentation = "https://docs.rs/hecs-schedule"
 repository = "https://github.com/ten3roberts/hecs-schedule"
 
@@ -14,11 +14,13 @@ repository = "https://github.com/ten3roberts/hecs-schedule"
 [dependencies]
 anyhow = "1.0.78"
 atomic_refcell = "0.1.13"
-hecs = { version = "0.10.4", features = [ "macros" ] }
+moss_hecs = { git = "https://github.com/keenawa-co/moss_hecs.git", branch = "master", features = [
+    "macros",
+] }
 rayon = { version = "1.8.0", optional = true }
 smallvec = "1.11.2"
 thiserror = "1.0.53"
 
 [features]
-default = [ "parallel" ]
-parallel = [ "rayon" ]
+default = ["parallel"]
+parallel = ["rayon"]

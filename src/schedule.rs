@@ -5,7 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use hecs::World;
+use moss_hecs::Frame;
 use smallvec::SmallVec;
 
 #[cfg(feature = "parallel")]
@@ -293,8 +293,8 @@ impl ScheduleBuilder {
 }
 
 // Flushes the commandbuffer
-fn flush_system(mut world: MaybeWrite<World>, mut cmd: Write<CommandBuffer>) -> Result<()> {
-    if let Some(world) = world.option_mut() {
+fn flush_system(mut frame: MaybeWrite<Frame>, mut cmd: Write<CommandBuffer>) -> Result<()> {
+    if let Some(world) = frame.option_mut() {
         cmd.execute(world);
     }
     Ok(())

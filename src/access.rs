@@ -1,6 +1,6 @@
 use std::any::{type_name, TypeId};
 
-use hecs::{Fetch, Query};
+use moss_hecs::{Fetch, Query};
 
 use crate::borrow::ComponentBorrow;
 

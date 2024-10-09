@@ -4,15 +4,15 @@ use std::{any::type_name, marker::PhantomData, ops::Deref};
 use crate::{access::*, borrow::ComponentBorrow, Error, Result};
 
 use crate::{GenericWorld, QueryOne};
-use hecs::{Component, Entity, Query, QueryBorrow, World};
+use moss_hecs::{Component, Entity, Frame, Query, QueryBorrow};
 
 /// Type alias for a subworld referencing the world by an [atomic_refcell::AtomicRef]. Most
 /// common for schedules
-pub type SubWorld<'a, T> = SubWorldRaw<AtomicRef<'a, World>, T>;
+pub type SubWorld<'a, T> = SubWorldRaw<AtomicRef<'a, Frame>, T>;
 /// Type alias for a subworld referencing the world by a [std::cell::Ref]
-pub type SubWorldRefCell<'a, T> = SubWorldRaw<std::cell::Ref<'a, World>, T>;
+pub type SubWorldRefCell<'a, T> = SubWorldRaw<std::cell::Ref<'a, Frame>, T>;
 /// Type alias for a subworld referencing the world by a reference
-pub type SubWorldRef<'a, T> = SubWorldRaw<&'a World, T>;
+pub type SubWorldRef<'a, T> = SubWorldRaw<&'a Frame, T>;
 
 /// An empty subworld, can not access any components
 pub type EmptyWorld<'a> = SubWorldRef<'a, ()>;
@@ -20,23 +20,23 @@ pub type EmptyWorld<'a> = SubWorldRef<'a, ()>;
 /// Represents a borrow of the world which can only access a subset of
 /// components (unless [`AllAccess`] is used).
 ///
-/// This type allows for any reference kind, such as `&World`,
+/// This type allows for any reference kind, such as `&Frame`,
 /// [AtomicRef](atomic_refcell::AtomicRef),
 /// [Ref](std::cell::Ref), etc.
 ///
 /// Type alises are provided for the most common usages, with [SubWorld] being
 /// the one used by [Schedule](crate::Schedule).
 pub struct SubWorldRaw<A, T> {
-    pub(crate) world: A,
+    pub(crate) frame: A,
     marker: PhantomData<T>,
 }
 
 impl<A, T> SubWorldRaw<A, T> {
     /// Splits the world into a subworld. No borrow checking is performed so may
     /// fail during query unless guarded otherwise.
-    pub fn new(world: A) -> Self {
+    pub fn new(frame: A) -> Self {
         Self {
-            world,
+            frame,
             marker: PhantomData,
         }
     }
@@ -54,7 +54,7 @@ impl<A, T: ComponentBorrow> SubWorldRaw<A, T> {
     }
 }
 
-impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
+impl<'w, A: 'w + Deref<Target = Frame>, T: ComponentBorrow> SubWorldRaw<A, T> {
     /// Query the subworld.
     /// # Panics
     /// Panics if the query items are not a compatible subset of the subworld.
@@ -74,7 +74,7 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
         }
 
         let query = self
-            .world
+            .frame
             .query_one(entity)
             .map_err(|_| Error::NoSuchEntity(entity))?;
 
@@ -84,7 +84,7 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
     /// Get a single component from the world.
     ///
     /// Wraps the hecs::NoSuchEntity error and provides the entity id
-    pub fn get<C: Component>(&self, entity: Entity) -> Result<hecs::Ref<C>> {
+    pub fn get<C: Component>(&self, entity: Entity) -> Result<moss_hecs::Ref<C>> {
         if !self.has::<&C>() {
             return Err(Error::IncompatibleSubworld {
                 subworld: type_name::<T>(),
@@ -92,10 +92,10 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
             });
         }
 
-        match self.world.get::<&C>(entity) {
+        match self.frame.get::<&C>(entity) {
             Ok(val) => Ok(val),
-            Err(hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
-            Err(hecs::ComponentError::MissingComponent(name)) => {
+            Err(moss_hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
+            Err(moss_hecs::ComponentError::MissingComponent(name)) => {
                 Err(Error::MissingComponent(entity, name))
             }
         }
@@ -104,7 +104,7 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
     /// Get a single component from the world.
     ///
     /// Wraps the hecs::NoSuchEntity error and provides the entity id
-    pub fn get_mut<C: Component>(&self, entity: Entity) -> Result<hecs::RefMut<C>> {
+    pub fn get_mut<C: Component>(&self, entity: Entity) -> Result<moss_hecs::RefMut<C>> {
         if !self.has::<&C>() {
             return Err(Error::IncompatibleSubworld {
                 subworld: type_name::<T>(),
@@ -112,10 +112,10 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
             });
         }
 
-        match self.world.get::<&mut C>(entity) {
+        match self.frame.get::<&mut C>(entity) {
             Ok(val) => Ok(val),
-            Err(hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
-            Err(hecs::ComponentError::MissingComponent(name)) => {
+            Err(moss_hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
+            Err(moss_hecs::ComponentError::MissingComponent(name)) => {
                 Err(Error::MissingComponent(entity, name))
             }
         }
@@ -123,7 +123,7 @@ impl<'w, A: 'w + Deref<Target = World>, T: ComponentBorrow> SubWorldRaw<A, T> {
 
     /// Reserve multiple entities concurrently
     pub fn reserve_entities(&self, count: u32) -> impl Iterator<Item = Entity> + '_ {
-        self.world.reserve_entities(count)
+        self.frame.reserve_entities(count)
     }
 
     /// Query the subworld.

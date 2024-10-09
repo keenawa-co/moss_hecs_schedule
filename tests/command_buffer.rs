@@ -1,13 +1,13 @@
 use anyhow::ensure;
-use hecs::World;
-use hecs_schedule::{CommandBuffer, GenericWorld, Schedule, SubWorld, Write};
+use moss_hecs::Frame;
+use moss_hecs_schedule::{CommandBuffer, GenericWorld, Schedule, SubWorld, Write};
 
 #[test]
 fn test_schedule() {
-    let mut world = World::default();
+    let mut frame = Frame::default();
 
-    let a = world.spawn((789,));
-    let b = world.reserve_entity();
+    let a = frame.spawn((789,));
+    let b = frame.reserve_entity();
 
     let mut schedule = Schedule::builder();
 
@@ -52,7 +52,7 @@ fn test_schedule() {
     );
 
     let mut schedule = schedule.build();
-    schedule.execute_seq((&mut world, &mut value)).unwrap();
+    schedule.execute_seq((&mut frame, &mut value)).unwrap();
 
     assert_eq!(value, Foo { val: 56 });
 }

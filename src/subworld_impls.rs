@@ -1,7 +1,7 @@
 use std::{any::type_name, ops::Deref};
 
 use atomic_refcell::AtomicRef;
-use hecs::{Component, Entity, Query, QueryBorrow, World};
+use moss_hecs::{Component, Entity, Frame, Query, QueryBorrow};
 
 use crate::{
     borrow::{Borrows, ComponentBorrow, ContextBorrow},
@@ -10,11 +10,11 @@ use crate::{
     SubWorldRef, Subset,
 };
 
-impl<A: Deref<Target = World>, T: Query> SubWorldRaw<A, T> {
+impl<A: Deref<Target = Frame>, T: Query> SubWorldRaw<A, T> {
     /// Query the full access of the subworld. Does not fail as access is
     /// guaranteed
     pub fn native_query(&self) -> QueryBorrow<'_, T> {
-        self.world.query::<T>()
+        self.frame.query::<T>()
     }
 }
 
@@ -29,7 +29,7 @@ impl<A: ExternalClone, T: ComponentBorrow> SubWorldRaw<A, T> {
             });
         }
 
-        Ok(SubWorldRaw::new(A::external_clone(&self.world)))
+        Ok(SubWorldRaw::new(A::external_clone(&self.frame)))
     }
 }
 
@@ -59,7 +59,7 @@ impl<T> ExternalClone for AtomicRef<'_, T> {
 
 impl<'a, A, T> View<'a> for SubWorldRaw<A, T>
 where
-    A: Deref<Target = World>,
+    A: Deref<Target = Frame>,
     T: ComponentBorrow,
 {
     type Superset = A;
@@ -74,7 +74,7 @@ impl<'a, T> ContextBorrow<'a> for SubWorld<'a, T> {
 
     fn borrow(context: &'a Context) -> Result<Self> {
         let val = context
-            .cell::<&World>()?
+            .cell::<&Frame>()?
             .try_borrow()
             .map_err(|_| Error::Borrow(type_name::<T>()))
             .map(|cell| AtomicRef::map(cell, |val| unsafe { val.cast().as_ref() }))?;
@@ -97,10 +97,10 @@ impl<A, T> From<A> for SubWorldRaw<A, T> {
     }
 }
 
-impl<'a, T> From<&'a Context<'a>> for SubWorldRaw<AtomicRef<'a, World>, T> {
+impl<'a, T> From<&'a Context<'a>> for SubWorldRaw<AtomicRef<'a, Frame>, T> {
     fn from(context: &'a Context) -> Self {
         let borrow = context
-            .cell::<&World>()
+            .cell::<&Frame>()
             .expect("Failed to borrow world from context")
             .borrow();
 
@@ -121,7 +121,7 @@ impl<'a, 'b, T: ComponentBorrow, U: ComponentBorrow + Subset> From<&'b SubWorld<
 impl<A, T: ComponentBorrow + Query> ComponentBorrow for SubWorldRaw<A, T> {
     fn borrows() -> Borrows {
         let mut access = T::borrows();
-        access.push(Access::of::<&World>());
+        access.push(Access::of::<&Frame>());
         access
     }
 
@@ -152,21 +152,21 @@ pub trait GenericWorld {
     /// Get a single component for an entity
     /// Returns the contextual result since hecs-schedule is required to be imported
     /// anyway
-    fn try_get<C: Component>(&self, entity: Entity) -> Result<hecs::Ref<C>>;
+    fn try_get<C: Component>(&self, entity: Entity) -> Result<moss_hecs::Ref<C>>;
 
     /// Get a single component for an entity
     /// Returns the contextual result since hecs-schedule is required to be imported
     /// anyway
-    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<hecs::RefMut<C>>;
+    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<moss_hecs::RefMut<C>>;
 
     /// Reserve an entity
     fn reserve(&self) -> Entity;
 }
 
-impl<A: Deref<Target = World>, T: ComponentBorrow> GenericWorld for SubWorldRaw<A, T> {
+impl<A: Deref<Target = Frame>, T: ComponentBorrow> GenericWorld for SubWorldRaw<A, T> {
     fn to_ref<U: ComponentBorrow + Subset>(&self) -> SubWorldRef<U> {
-        let world = self.world.deref();
-        SubWorldRef::<T>::new(world).split().unwrap()
+        let frame = self.frame.deref();
+        SubWorldRef::<T>::new(frame).split().unwrap()
     }
 
     fn try_query<Q: Query + Subset>(&self) -> Result<QueryBorrow<'_, Q>> {
@@ -176,7 +176,7 @@ impl<A: Deref<Target = World>, T: ComponentBorrow> GenericWorld for SubWorldRaw<
                 query: type_name::<Q>(),
             });
         } else {
-            Ok(self.world.query())
+            Ok(self.frame.query())
         }
     }
 
@@ -184,21 +184,21 @@ impl<A: Deref<Target = World>, T: ComponentBorrow> GenericWorld for SubWorldRaw<
         self.query_one(entity)
     }
 
-    fn try_get<C: Component>(&self, entity: Entity) -> Result<hecs::Ref<C>> {
+    fn try_get<C: Component>(&self, entity: Entity) -> Result<moss_hecs::Ref<C>> {
         self.get(entity)
     }
 
-    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<hecs::RefMut<C>> {
+    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<moss_hecs::RefMut<C>> {
         self.get_mut(entity)
     }
 
     /// Reserve an entity
     fn reserve(&self) -> Entity {
-        self.world.reserve_entity()
+        self.frame.reserve_entity()
     }
 }
 
-impl GenericWorld for World {
+impl GenericWorld for Frame {
     fn to_ref<T: ComponentBorrow + Subset>(&self) -> SubWorldRef<T> {
         SubWorldRef::new(self)
     }
@@ -214,21 +214,21 @@ impl GenericWorld for World {
         }
     }
 
-    fn try_get<C: Component>(&self, entity: Entity) -> Result<hecs::Ref<C>> {
+    fn try_get<C: Component>(&self, entity: Entity) -> Result<moss_hecs::Ref<C>> {
         match self.get::<&C>(entity) {
             Ok(val) => Ok(val),
-            Err(hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
-            Err(hecs::ComponentError::MissingComponent(name)) => {
+            Err(moss_hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
+            Err(moss_hecs::ComponentError::MissingComponent(name)) => {
                 Err(Error::MissingComponent(entity, name))
             }
         }
     }
 
-    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<hecs::RefMut<C>> {
+    fn try_get_mut<C: Component>(&self, entity: Entity) -> Result<moss_hecs::RefMut<C>> {
         match self.get::<&mut C>(entity) {
             Ok(val) => Ok(val),
-            Err(hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
-            Err(hecs::ComponentError::MissingComponent(name)) => {
+            Err(moss_hecs::ComponentError::NoSuchEntity) => Err(Error::NoSuchEntity(entity)),
+            Err(moss_hecs::ComponentError::MissingComponent(name)) => {
                 Err(Error::MissingComponent(entity, name))
             }
         }

@@ -1,16 +1,16 @@
 use std::any::type_name;
 
 use crate::{Error, Result};
-use hecs::{Entity, Query};
+use moss_hecs::{Entity, Query};
 
 /// Wraps the bulting QueryOne with a Result containing the entity and component instead of option
 pub struct QueryOne<'a, Q: Query> {
     entity: Entity,
-    query: hecs::QueryOne<'a, Q>,
+    query: moss_hecs::QueryOne<'a, Q>,
 }
 
 impl<'a, Q: Query> QueryOne<'a, Q> {
-    pub(crate) fn new(entity: Entity, query: hecs::QueryOne<'a, Q>) -> Self {
+    pub(crate) fn new(entity: Entity, query: moss_hecs::QueryOne<'a, Q>) -> Self {
         Self { entity, query }
     }
 

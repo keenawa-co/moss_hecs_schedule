@@ -3,7 +3,7 @@ use crate::{Read, SubWorld, Write};
 
 use super::{ContextBorrow, MaybeRead, MaybeWrite};
 
-use hecs::Component;
+use moss_hecs::Component;
 
 /// Lifetime erasure in waiting of GAT
 pub trait IntoBorrow {

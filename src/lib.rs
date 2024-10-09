@@ -43,10 +43,10 @@
 //! ## Usage
 //!
 //! ```rust
-//! use hecs_schedule::*;
-//! use hecs::*;
+//! use moss_hecs_schedule::*;
+//! use moss_hecs::*;
 //!
-//! let mut world = World::default();
+//! let mut frame = Frame::default();
 //!
 //! #[derive(Debug)]
 //! struct App {
@@ -58,9 +58,9 @@
 //! };
 //!
 //! // Spawn some entities
-//! let a = world.spawn(("a", 42));
-//! world.spawn(("b", 0));
-//! world.spawn(("c", 7));
+//! let a = frame.spawn(("a", 42));
+//! frame.spawn(("b", 0));
+//! frame.spawn(("c", 7));
 //!
 //! // Create a simple system to print the entities
 //! let print_system = | w: SubWorld<(& &'static str, &i32)> | {
@@ -95,7 +95,7 @@
 //!
 //! // Note: the `hecs_schedule::CommandBuffer` is a superset of `hecs::CommandBuffer` and is
 //! // accesible as a shared resource from systems.
-//! let spawn_system = |mut cmd: Write<hecs_schedule::CommandBuffer>| {
+//! let spawn_system = |mut cmd: Write<moss_hecs_schedule::CommandBuffer>| {
 //!     cmd.spawn(("c", 5));
 //! };
 //!
@@ -107,9 +107,9 @@
 //!     .add_system(get_system)
 //!     .build();
 //!
-//! // Execute the schedule's systems and provide the world and app. This will parallelize as much
+//! // Execute the schedule's systems and provide the frame and app. This will parallelize as much
 //! // as possible.
-//! schedule.execute((&mut world, &mut app)).expect("Failed to execute schedule");
+//! schedule.execute((&mut frame, &mut app)).expect("Failed to execute schedule");
 //!
 //! ```
 

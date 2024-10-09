@@ -1,6 +1,6 @@
 //! This module provides the error type and result type aliases for
 //! hecs-schedule.
-use hecs::Entity;
+use moss_hecs::Entity;
 use thiserror::*;
 
 use crate::SystemName;
@@ -22,10 +22,10 @@ pub enum Error {
 
     #[error("Entity: {0:?} does not exist in world")]
     #[doc(hidden)]
-    NoSuchEntity(hecs::Entity),
+    NoSuchEntity(moss_hecs::Entity),
     #[error("The entity {0:?} did not have the desired component {1:?}")]
     #[doc(hidden)]
-    MissingComponent(Entity, #[source] hecs::MissingComponent),
+    MissingComponent(Entity, #[source] moss_hecs::MissingComponent),
 
     #[error("Query for entity {0:?} did not satisfy {1:?}")]
     #[doc(hidden)]

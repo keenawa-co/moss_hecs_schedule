@@ -1,5 +1,5 @@
-use hecs::{
-    Bundle, CommandBuffer as CommandBufferInternal, Component, DynamicBundle, Entity, World,
+use moss_hecs::{
+    Bundle, CommandBuffer as CommandBufferInternal, Component, DynamicBundle, Entity, Frame,
 };
 
 #[derive(Default)]
@@ -13,7 +13,7 @@ pub struct CommandBuffer {
     /// Use the already existing hecs::CommmandBuffer
     components: CommandBufferInternal,
     despawns: Vec<Entity>,
-    writes: Vec<Box<dyn FnOnce(&mut World) + Send + Sync>>,
+    writes: Vec<Box<dyn FnOnce(&mut Frame) + Send + Sync>>,
 }
 
 impl CommandBuffer {
@@ -58,14 +58,14 @@ impl CommandBuffer {
     }
 
     /// Applies the recorded commands on the world
-    pub fn execute(&mut self, world: &mut World) {
-        self.components.run_on(world);
+    pub fn execute(&mut self, frame: &mut Frame) {
+        self.components.run_on(frame);
 
-        self.writes.drain(..).for_each(|cmd| (cmd)(world));
+        self.writes.drain(..).for_each(|cmd| (cmd)(frame));
 
         self.despawns
             .drain(..)
-            .for_each(|e| world.despawn(e).expect("Failed to despawn entity"));
+            .for_each(|e| frame.despawn(e).expect("Failed to despawn entity"));
     }
 
     /// Nest a commandbuffer
@@ -74,7 +74,7 @@ impl CommandBuffer {
     }
 
     /// Record a custom command modifying the world
-    pub fn write(&mut self, cmd: impl FnOnce(&mut World) + Component) {
+    pub fn write(&mut self, cmd: impl FnOnce(&mut Frame) + Component) {
         self.writes.push(Box::new(cmd))
     }
 
@@ -85,4 +85,3 @@ impl CommandBuffer {
         self.components.clear();
     }
 }
-

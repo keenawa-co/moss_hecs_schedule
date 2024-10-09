@@ -2,7 +2,7 @@ use std::any::{type_name, TypeId};
 
 use super::Borrows;
 use crate::{Access, AllAccess, IntoAccess};
-use hecs::{Fetch, Query, World};
+use moss_hecs::{Fetch, Frame, Query};
 pub use smallvec::smallvec;
 use smallvec::SmallVec;
 
@@ -46,7 +46,7 @@ impl<'a, Q: Query> ComponentBorrow for Q {
 
 impl ComponentBorrow for AllAccess {
     fn borrows() -> Borrows {
-        smallvec![Access::of::<&mut World>()]
+        smallvec![Access::of::<&mut Frame>()]
     }
 
     // Has everything

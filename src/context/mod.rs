@@ -5,7 +5,7 @@ use std::{any::TypeId, cmp::Ordering, ptr::NonNull};
 use atomic_refcell::AtomicRefCell;
 
 use crate::{borrow::ContextBorrow, Error, IntoAccess, Result};
-use hecs::Component;
+use moss_hecs::Component;
 
 /// Holds all data necessary for the execution of the world.
 /// The data is held by references, and needs to outlive the context itself
